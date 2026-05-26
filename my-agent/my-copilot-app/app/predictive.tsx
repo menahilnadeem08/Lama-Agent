@@ -1,7 +1,6 @@
 "use client";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { CopilotSidebar } from '@copilotkit/react-ui';
-import '@copilotkit/react-ui/v2/styles.css';
 interface Step {
     description: string;
     status: 'pending' | 'completed';

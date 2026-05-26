@@ -1,90 +1,104 @@
+import asyncio
 from typing import Annotated, List
+from pydantic import BaseModel
 from fastapi import FastAPI
-from llama_index.llms.openai import OpenAI
 from llama_index.core.workflow import Context
-from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
+from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
-async def answerQuestion(
-    ctx: Context,
-    answer: Annotated[str, "The answer to store in state."]
-) -> str:
-    """Stores the answer to the user's question in shared state.
+from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
+
+
+class Step(BaseModel):
+    """A single step in a task."""
+    description: str
+
+
+class Task(BaseModel):
+    """A task with a list of steps to execute."""
+    steps: List[Step]
+
+
+async def execute_task(ctx: Context, task: Task) -> str:
+    """Execute a list of steps for any task. Use this for any task the user wants to accomplish.
+    
     Args:
-        ctx: The workflow context for state management.
-        answer: The answer to store in state.
+        ctx: The workflow context for accessing and updating state.
+        task: The task containing the list of steps to execute.
+    
     Returns:
-        str: A message indicating the answer was stored.
+        str: Confirmation that the task was completed.
     """
+    task = Task.model_validate(task)
+    
     async with ctx.store.edit_state() as global_state:
         state = global_state.get("state", {})
         if state is None:
             state = {}
         
-        state["answer"] = answer
+        # Initialize all steps as pending
+        state["observed_steps"] = [
+            {"description": step.description, "status": "pending"}
+            for step in task.steps
+        ]
         
-        # Emit state update to frontend
+        # Send initial state snapshot
         ctx.write_event_to_stream(
             StateSnapshotWorkflowEvent(snapshot=state)
         )
         
-        global_state["state"] = state
-    
-    return f"Answer stored: {answer}"
-async def addResource(
-    ctx: Context,
-    resource: Annotated[str, "The resource URL or reference to add."]
-) -> str:
-    """Adds a resource to the internal resources list in shared state.
-    Args:
-        ctx: The workflow context for state management.
-        resource: The resource URL or reference to add.
-    Returns:
-        str: A message indicating the resource was added.
-    """
-    async with ctx.store.edit_state() as global_state:
-        state = global_state.get("state", {})
-        if state is None:
-            state = {}
+        # Simulate step execution with delays
+        await asyncio.sleep(0.5)
         
-        resources = state.get("resources", [])
-        resources.append(resource)
-        state["resources"] = resources
+        # Update each step to completed one by one
+        for i in range(len(state["observed_steps"])):
+            state["observed_steps"][i]["status"] = "completed"
+            
+            # Emit updated state after each step
+            ctx.write_event_to_stream(
+                StateSnapshotWorkflowEvent(snapshot=state)
+            )
+            
+            # Small delay between steps for visual effect
+            await asyncio.sleep(0.5)
         
         global_state["state"] = state
     
-    return f"Resource added: {resource}"
+    return "Task completed successfully!"
+
+
 # Initialize the LLM
 llm = OpenAI(model="gpt-5.4")
+
 # Create the AG-UI workflow router
 agentic_chat_router = get_ag_ui_workflow_router(
     llm=llm,
-    system_prompt="""
-    You are a helpful assistant. When the user asks a question:
-    1. Think through your answer
-    2. Optionally use addResource to track any sources you reference
-    3. Use answerQuestion to provide your final answer - this stores it in state for the user to see
-    
-    Always use the answerQuestion tool to provide your response so it appears in the UI.
-    """,
-    backend_tools=[answerQuestion, addResource],
+    system_prompt=(
+        "You are a helpful assistant that can help the user with their task. "
+        "When the user asks you to do any task (like creating a recipe, planning something, etc.), "
+        "use the execute_task tool with a list of steps. Use your best judgment to describe the steps. "
+        "Always use the tool for any actionable request."
+    ),
+    backend_tools=[execute_task],
     initial_state={
-        "question": "",       # Input: received from frontend
-        "answer": "",         # Output: sent to frontend
-        "resources": []       # Internal: tracking resources
+        "observed_steps": [],
     },
 )
+
 # Create FastAPI app
 app = FastAPI(
     title="LlamaIndex Agent",
     description="A LlamaIndex agent integrated with CopilotKit",
     version="1.0.0"
 )
+
 # Include the router
 app.include_router(agentic_chat_router)
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "agent": "llamaindex"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="localhost", port=8000)
