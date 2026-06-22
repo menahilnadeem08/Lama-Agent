@@ -1,70 +1,65 @@
 import asyncio
-from typing import Annotated, List
-from pydantic import BaseModel
+from typing import Annotated
 from fastapi import FastAPI
-from llama_index.core.workflow import Context
 from llama_index.llms.openai import OpenAI
-from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
+from llama_index.core.workflow import Context
 from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
+from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
 
-
-class Step(BaseModel):
-    """A single step in a task."""
-    description: str
-
-
-class Task(BaseModel):
-    """A task with a list of steps to execute."""
-    steps: List[Step]
-
-
-async def execute_task(ctx: Context, task: Task) -> str:
-    """Execute a list of steps for any task. Use this for any task the user wants to accomplish.
-    
-    Args:
-        ctx: The workflow context for accessing and updating state.
-        task: The task containing the list of steps to execute.
-    
-    Returns:
-        str: Confirmation that the task was completed.
-    """
-    task = Task.model_validate(task)
-    
+async def addSearch(
+    ctx: Context,
+    query: Annotated[str, "The search query to add."]
+) -> str:
+    """Add a search to the agent's list of searches."""
     async with ctx.store.edit_state() as global_state:
         state = global_state.get("state", {})
         if state is None:
             state = {}
-        
-        # Initialize all steps as pending
-        state["observed_steps"] = [
-            {"description": step.description, "status": "pending"}
-            for step in task.steps
-        ]
-        
-        # Send initial state snapshot
-        ctx.write_event_to_stream(
-            StateSnapshotWorkflowEvent(snapshot=state)
-        )
-        
-        # Simulate step execution with delays
-        await asyncio.sleep(0.5)
-        
-        # Update each step to completed one by one
-        for i in range(len(state["observed_steps"])):
-            state["observed_steps"][i]["status"] = "completed"
-            
-            # Emit updated state after each step
-            ctx.write_event_to_stream(
-                StateSnapshotWorkflowEvent(snapshot=state)
-            )
-            
-            # Small delay between steps for visual effect
-            await asyncio.sleep(0.5)
-        
-        global_state["state"] = state
-    
-    return "Task completed successfully!"
 
+        if "searches" not in state:
+            state["searches"] = []
+
+        # Add new search
+        new_search = {"query": query, "done": False}
+        state["searches"].append(new_search)
+
+        # Emit state snapshot to frontend
+        ctx.write_event_to_stream(
+            StateSnapshotWorkflowEvent(
+                snapshot=state
+            )
+        )
+
+        global_state["state"] = state
+
+    return f"Added search: {query}"
+
+async def runSearches(ctx: Context) -> str:
+    """Run all the searches that have been added."""
+    async with ctx.store.edit_state() as global_state:
+        state = global_state.get("state", {})
+        if state is None:
+            state = {}
+
+        if "searches" not in state:
+            state["searches"] = []
+
+        # Update each search to done
+        for search in state["searches"]:
+            if not search.get("done", False):
+                await asyncio.sleep(1)  # Simulate search execution
+                search["done"] = True
+
+                # Emit state update as each search completes
+                ctx.write_event_to_stream(
+                    StateSnapshotWorkflowEvent(
+                        snapshot=state
+                    )
+                )
+
+        global_state["state"] = state
+
+    return "All searches completed!"
 
 # Initialize the LLM
 llm = OpenAI(model="gpt-5.4")
@@ -72,15 +67,21 @@ llm = OpenAI(model="gpt-5.4")
 # Create the AG-UI workflow router
 agentic_chat_router = get_ag_ui_workflow_router(
     llm=llm,
-    system_prompt=(
-        "You are a helpful assistant that can help the user with their task. "
-        "When the user asks you to do any task (like creating a recipe, planning something, etc.), "
-        "use the execute_task tool with a list of steps. Use your best judgment to describe the steps. "
-        "Always use the tool for any actionable request."
-    ),
-    backend_tools=[execute_task],
+    system_prompt="""
+    You are a helpful assistant for storing searches.
+
+    IMPORTANT:
+    - Use the addSearch tool to add a search to the agent's state
+    - After using the addSearch tool, YOU MUST ALWAYS use the runSearches tool to run the searches
+    - ONLY USE THE addSearch TOOL ONCE FOR A GIVEN QUERY
+
+    When adding searches, update the state to track:
+    - query: the search query
+    - done: whether the search is complete (false initially, true after running)
+    """,
+    backend_tools=[addSearch, runSearches],
     initial_state={
-        "observed_steps": [],
+        "searches": []
     },
 )
 
