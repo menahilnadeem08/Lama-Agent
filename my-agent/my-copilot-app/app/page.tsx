@@ -38,8 +38,8 @@ type AgentState = {
 // }
 import CustomChat from "./custom-chat";
 export default function Page() {
-  const { agent } = useAgent({ agentId: "my_agent" });
-    const { copilotkit } = useCopilotKit();
+  // const { agent } = useAgent({ agentId: "my_agent" });
+    //const { copilotkit } = useCopilotKit();
 
   // useComponent({
   //   name: "showWeather",
@@ -48,69 +48,69 @@ export default function Page() {
   //   render: WeatherCard,
   // });
   //======================Subscribing to AG-UI Events====================
-    useEffect(() => {
-    const subscription = agent.subscribe({
-      // Called on every event
-      onEvent({ event, agent }) {
-        console.log("Event:", event.type, event);
-      },
-      // Text message streaming
-      onTextMessageContentEvent({ event, textMessageBuffer, agent }) {
-        console.log("Streaming text:", textMessageBuffer);
-      },
-      // Tool calls
-      onToolCallEndEvent({ event, toolCallName, toolCallArgs, agent }) {
-        console.log("Tool called:", toolCallName, toolCallArgs);
-      },
-      // State updates
-      onStateSnapshotEvent({ event, agent }) {
-        console.log("State snapshot:", agent.state);
-      },
-      // High-level lifecycle
-      onMessagesChanged({ agent }) {
-        console.log("Messages updated:", agent.messages);
-      },
-      onStateChanged({ agent }) {
-        console.log("State changed:", agent.state);
-      },onCustomEvent: ({ event }) => {
-        console.log("Custom event:", event.name, event.value);
-      },
-      onRunStartedEvent: () => {
-        console.log("Agent started running");
-      },
-      onRunFinalized: () => {
-        console.log("Agent finished running");
-      },
+//     useEffect(() => {
+//     const subscription = agent.subscribe({
+//       // Called on every event
+//       onEvent({ event, agent }) {
+//         console.log("Event:", event.type, event);
+//       },
+//       // Text message streaming
+//       onTextMessageContentEvent({ event, textMessageBuffer, agent }) {
+//         console.log("Streaming text:", textMessageBuffer);
+//       },
+//       // Tool calls
+//       onToolCallEndEvent({ event, toolCallName, toolCallArgs, agent }) {
+//         console.log("Tool called:", toolCallName, toolCallArgs);
+//       },
+//       // State updates
+//       onStateSnapshotEvent({ event, agent }) {
+//         console.log("State snapshot:", agent.state);
+//       },
+//       // High-level lifecycle
+//       onMessagesChanged({ agent }) {
+//         console.log("Messages updated:", agent.messages);
+//       },
+//       onStateChanged({ agent }) {
+//   console.log("State changed:", JSON.stringify(agent.state, null, 2));
+// },onCustomEvent: ({ event }) => {
+//         console.log("Custom event:", event.name, event.value);
+//       },
+//       onRunStartedEvent: () => {
+//         console.log("Agent started running");
+//       },
+//       onRunFinalized: () => {
+//         console.log("Agent finished running");
+//       },
 
-    });
+//     });
     
-    return () => subscription.unsubscribe();
-  }, [agent]);
+//     return () => subscription.unsubscribe();
+//   }, [agent]);
    // interactive
 
-//   useHumanInTheLoop({
-//     name: "humanApprovedCommand",
-//     description: "Ask human for approval to run a command.",
-//     parameters: z.object({
-//       command: z.string().describe("The command to run"),
-//     }),
-//     render: ({ args, respond, status }) => {
-//       if (status !== "executing") return <></>;
-//       return (
-//         <div>
-//           <pre>{args.command}</pre>
-//           <button onClick={() => respond?.(`Tell the user the command ran`)}>
-//             Approve
-//           </button>
-//           <button
-//             onClick={() => respond?.(`Tell the user the command wasn't run`)}
-//           >
-//             Deny
-//           </button>
-//         </div>
-//       );
-//     },
-//   });
+  useHumanInTheLoop({
+    name: "humanApprovedCommand",
+    description: "Ask human for approval to run a command.",
+    parameters: z.object({
+      command: z.string().describe("The command to run"),
+    }),
+    render: ({ args, respond, status }) => {
+      if (status !== "executing") return <></>;
+      return (
+        <div>
+          <pre>{args.command}</pre>
+          <button onClick={() => respond?.(`Tell the user the command ran`)}>
+            Approve
+          </button>
+          <button
+            onClick={() => respond?.(`Tell the user the command wasn't run`)}
+          >
+            Deny
+          </button>
+        </div>
+      );
+    },
+  });
 //  useRenderTool({
 //     name: "getWeather",
 //     render: ({status, args}) => {
@@ -122,65 +122,60 @@ export default function Page() {
 //       );
 //     },
 //   });
-  // ...
-   // reading/writing
-    // const { agent } = useAgent({
-    //     agentId: "my_agent",
-    //     initialState: { language: "english" }  // optionally provide an initial state
-    // });
-    // const toggleLanguage = () => {
-    //     agent.setState({ language: agent.state?.language === "english" ? "spanish" : "english" });
-    // };
-
-   //state rendering
-    //  useAgent({
-    //   agentId: "my_agent",
-    //   render: ({ state }) => (
-    //     <div>
-    //       {state.searches?.map((search, index) => (
-    //         <div key={index}>
-    //           {search.done ? "✅" : "❌"} {search.query}{search.done ? "" : "..."}
-    //         </div>
-    //       ))}
-    //     </div>
-    //   ),
-    // });
-
-
-    //frontend tools
-      useFrontendTool({
-        name: "sayHello",
-        description: "Say hello to the user",
-        parameters: z.object({
-          name: z.string().describe("The name of the user to say hello to"),
-        }),
-        handler: async ({ name }) => {
-          alert(`Hello, ${name}!`);
-          return `Said hello to ${name}!`;
-        },
-      });
-      const handleRun = async () => {
-    agent.addMessage({
-      id: randomUUID(),
-      role: "user",
-      content: "Hello, agent!",
+//   // ...
+//    // reading/writing
+    const { agent } = useAgent({
+        agentId: "my_agent",
+        initialState: { language: "english" }  // optionally provide an initial state
     });
-    await copilotkit.runAgent({ agent });
-  };
-   const updateTheme = (theme: string) => {
-    agent.setState({
-      ...agent.state,
-      user_theme: theme,
-    });
-  };
+    const toggleLanguage = () => {
+        agent.setState({ language: agent.state?.language === "english" ? "spanish" : "english" });
+    };
+
+//    //state rendering
+//     //  useAgent({
+//     //   agentId: "my_agent",
+//     //   render: ({ state }) => (
+//     //     <div>
+//     //       {state.searches?.map((search, index) => (
+//     //         <div key={index}>
+//     //           {search.done ? "✅" : "❌"} {search.query}{search.done ? "" : "..."}
+//     //         </div>
+//     //       ))}
+//     //     </div>
+//     //   ),
+//     // });
+
+
+//     //frontend tools
+//       useFrontendTool({
+//         name: "sayHello",
+//         description: "Say hello to the user",
+//         parameters: z.object({
+//           name: z.string().describe("The name of the user to say hello to"),
+//         }),
+//         handler: async ({ name }) => {
+//           alert(`Hello, ${name}!`);
+//           return `Said hello to ${name}!`;
+//         },
+//       });
 
     return (
         <main>
             <h1>Your main content</h1>
+ <div className="flex flex-col gap-2 mt-4">
+        {agent.state?.searches?.map((search, index) => (
+          <div key={index} className="flex flex-row">
+            {search.done ? "✅" : "❌"} {search.query}
+          </div>
+        ))}
+      </div>
 
 
-            {/* <p>Language: {agent.state?.language}</p> 
-            <button onClick={toggleLanguage}>Toggle Language</button> */}
+            <p>Language: {agent.state?.language}</p> 
+            <button onClick={toggleLanguage}>Toggle Language</button>
+                  <CustomChat/>
+
 {/* 
             <CopilotPopup
                 labels={{
@@ -188,7 +183,7 @@ export default function Page() {
                     welcomeMessageText: "Need any help?",
                 }}
             /> */}
-  <CopilotSidebar/>
+<CopilotSidebar/>
   {/* <AgentDashboard /> */}
 
       {/* <CopilotChat
@@ -246,7 +241,7 @@ export function Chat() {
 }
 
 
-//============================Predictive workflow=======================
+// ============================Predictive workflow=======================
 // "use client";
 
 // import { useAgent ,CopilotSidebar} from "@copilotkit/react-core/v2";
@@ -326,7 +321,7 @@ export function Chat() {
 //             </main>
 //         </div>
 //     );
-//}
+// }
 
 
 
