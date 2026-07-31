@@ -2,6 +2,7 @@ import asyncio
 from typing import Annotated, List
 from pydantic import BaseModel
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from llama_index.core.workflow import Context
 from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
@@ -89,6 +90,14 @@ app = FastAPI(
     title="LlamaIndex Agent",
     description="A LlamaIndex agent integrated with CopilotKit",
     version="1.0.0"
+)
+
+# Allow browser preflight requests from local dev origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200", "http://127.0.0.1:4200"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Include the router

@@ -38,7 +38,7 @@ type AgentState = {
 // }
 import CustomChat from "./custom-chat";
 export default function Page() {
-  // const { agent } = useAgent({ agentId: "my_agent" });
+  const { agent } = useAgent({ agentId: "my_agent" });
     //const { copilotkit } = useCopilotKit();
 
   // useComponent({
@@ -48,45 +48,45 @@ export default function Page() {
   //   render: WeatherCard,
   // });
   //======================Subscribing to AG-UI Events====================
-//     useEffect(() => {
-//     const subscription = agent.subscribe({
-//       // Called on every event
-//       onEvent({ event, agent }) {
-//         console.log("Event:", event.type, event);
-//       },
-//       // Text message streaming
-//       onTextMessageContentEvent({ event, textMessageBuffer, agent }) {
-//         console.log("Streaming text:", textMessageBuffer);
-//       },
-//       // Tool calls
-//       onToolCallEndEvent({ event, toolCallName, toolCallArgs, agent }) {
-//         console.log("Tool called:", toolCallName, toolCallArgs);
-//       },
-//       // State updates
-//       onStateSnapshotEvent({ event, agent }) {
-//         console.log("State snapshot:", agent.state);
-//       },
-//       // High-level lifecycle
-//       onMessagesChanged({ agent }) {
-//         console.log("Messages updated:", agent.messages);
-//       },
-//       onStateChanged({ agent }) {
-//   console.log("State changed:", JSON.stringify(agent.state, null, 2));
-// },onCustomEvent: ({ event }) => {
-//         console.log("Custom event:", event.name, event.value);
-//       },
-//       onRunStartedEvent: () => {
-//         console.log("Agent started running");
-//       },
-//       onRunFinalized: () => {
-//         console.log("Agent finished running");
-//       },
+    useEffect(() => {
+    const subscription = agent.subscribe({
+      // Called on every event
+      onEvent({ event, agent }) {
+        console.log("Event:", event.type, event);
+      },
+      // Text message streaming
+      onTextMessageContentEvent({ event, textMessageBuffer, agent }) {
+        console.log("Streaming text:", textMessageBuffer);
+      },
+      // Tool calls
+      onToolCallEndEvent({ event, toolCallName, toolCallArgs, agent }) {
+        console.log("Tool called:", toolCallName, toolCallArgs);
+      },
+      // State updates
+      onStateSnapshotEvent({ event, agent }) {
+        console.log("State snapshot:", agent.state);
+      },
+      // High-level lifecycle
+      onMessagesChanged({ agent }) {
+        console.log("Messages updated:", agent.messages);
+      },
+      onStateChanged({ agent }) {
+  console.log("State changed:", JSON.stringify(agent.state, null, 2));
+},onCustomEvent: ({ event }) => {
+        console.log("Custom event:", event.name, event.value);
+      },
+      onRunStartedEvent: () => {
+        console.log("Agent started running");
+      },
+      onRunFinalized: () => {
+        console.log("Agent finished running");
+      },
 
-//     });
+    });
     
-//     return () => subscription.unsubscribe();
-//   }, [agent]);
-   // interactive
+    return () => subscription.unsubscribe();
+  }, [agent]);
+  // interactive
 
   useHumanInTheLoop({
     name: "humanApprovedCommand",
@@ -111,23 +111,23 @@ export default function Page() {
       );
     },
   });
-//  useRenderTool({
-//     name: "getWeather",
-//     render: ({status, args}) => {
-//       return (
-//         <p className="text-gray-500 mt-2">
-//           {status !== "complete" && "Calling weather API..."}
-//           {status === "complete" && `Called the weather API for ${args.location}.`}
-//         </p>
-//       );
-//     },
-//   });
+ useRenderTool({
+    name: "getWeather",
+    render: ({status, args}) => {
+      return (
+        <p className="text-gray-500 mt-2">
+          {status !== "complete" && "Calling weather API..."}
+          {status === "complete" && `Called the weather API for ${args.location}.`}
+        </p>
+      );
+    },
+  });
 //   // ...
 //    // reading/writing
-    const { agent } = useAgent({
-        agentId: "my_agent",
-        initialState: { language: "english" }  // optionally provide an initial state
-    });
+    // const { agent } = useAgent({
+    //     agentId: "my_agent",
+    //     initialState: { language: "english" }  // optionally provide an initial state
+    // });
     const toggleLanguage = () => {
         agent.setState({ language: agent.state?.language === "english" ? "spanish" : "english" });
     };
@@ -148,17 +148,17 @@ export default function Page() {
 
 
 //     //frontend tools
-//       useFrontendTool({
-//         name: "sayHello",
-//         description: "Say hello to the user",
-//         parameters: z.object({
-//           name: z.string().describe("The name of the user to say hello to"),
-//         }),
-//         handler: async ({ name }) => {
-//           alert(`Hello, ${name}!`);
-//           return `Said hello to ${name}!`;
-//         },
-//       });
+      useFrontendTool({
+        name: "sayHello",
+        description: "Say hello to the user",
+        parameters: z.object({
+          name: z.string().describe("The name of the user to say hello to"),
+        }),
+        handler: async ({ name }) => {
+          alert(`Hello, ${name}!`);
+          return `Said hello to ${name}!`;
+        },
+      });
 
     return (
         <main>
@@ -171,10 +171,9 @@ export default function Page() {
         ))}
       </div>
 
-
-            <p>Language: {agent.state?.language}</p> 
+<p>Language: {agent.state?.language}</p> 
             <button onClick={toggleLanguage}>Toggle Language</button>
-                  <CustomChat/>
+                  {/* <CustomChat/> */}
 
 {/* 
             <CopilotPopup
@@ -183,9 +182,15 @@ export default function Page() {
                     welcomeMessageText: "Need any help?",
                 }}
             /> */}
-<CopilotSidebar/>
-  {/* <AgentDashboard /> */}
+            {/* <AgentDashboard/> */}
 
+<CopilotChat
+  labels={{
+    chatInputPlaceholder: "Ask your agent anything...",
+    welcomeMessageText: "How can I help you today?",
+    chatDisclaimerText: "AI responses may be inaccurate.",
+  }}
+/>
       {/* <CopilotChat
   // Style slots with Tailwind classes
   input={{
@@ -204,7 +209,7 @@ export default function Page() {
     );
 }
 
-// ==================SLOTS=======================
+// // ==================SLOTS=======================
 const CustomMessageView = ({ messages, isRunning }: { messages: any[]; isRunning: boolean }) => (
 
     <div className="flex flex-col h-full">
@@ -241,7 +246,7 @@ export function Chat() {
 }
 
 
-// ============================Predictive workflow=======================
+// // ============================Predictive workflow=======================
 // "use client";
 
 // import { useAgent ,CopilotSidebar} from "@copilotkit/react-core/v2";
@@ -325,7 +330,7 @@ export function Chat() {
 
 
 
-//==================WORKFLOW EXECUTION========================
+// //==================WORKFLOW EXECUTION========================
 
 // "use client";
 
